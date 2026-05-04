@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Use Vercel's default serverless output
   // output: "export", // commented out for Vercel deployment
-  trailingSlash: true, // ⚠️ CỰC KỲ QUAN TRỌNG
   images: {
     // Allow external image domains for production
     domains: ["api.25zone.io.vn", "cdn.25zone.io.vn"],
