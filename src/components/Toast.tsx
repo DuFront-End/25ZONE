@@ -33,7 +33,7 @@ function ToastCard({ item, onClose }: { item: ToastItem; onClose: (id: string) =
     setTimeout(() => onClose(item.id), 300);
   };
 
-  const styles: Record<ToastType, { bg: string; border: string; iconColor: string; textColor: string; icon: JSX.Element }> = {
+  const styles: Record<ToastType, { bg: string; border: string; iconColor: string; textColor: string; icon: React.ReactNode }> = {
     success: {
       bg: "bg-[#F4FCF6]",
       border: "border-[#27AE60]",
