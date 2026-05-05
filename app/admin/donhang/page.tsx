@@ -2,7 +2,11 @@
 
 import { toast } from "../../component/Toast";
 import { useEffect, useMemo, useState } from "react";
-import { API_BASE, authorizedAdminFetch, clearAdminSession } from "@/app/lib/admin-auth";
+import {
+  API_BASE,
+  authorizedAdminFetch,
+  clearAdminSession,
+} from "@/app/lib/admin-auth";
 
 type AdminOrder = {
   Id_order: number;
@@ -59,6 +63,17 @@ export default function QuanLyDonHang() {
   const [error, setError] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   const authorizedFetch = async (input: string, init: RequestInit = {}) =>
     authorizedAdminFetch(input, init, () => {
@@ -81,7 +96,8 @@ export default function QuanLyDonHang() {
       const url = `${API_BASE}/api/admin/orders${query.toString() ? `?${query.toString()}` : ""}`;
       const response = await authorizedFetch(url);
       const data = await response.json();
-      if (!response.ok) throw new Error(data?.message || "Không thể tải danh sách đơn hàng.");
+      if (!response.ok)
+        throw new Error(data?.message || "Không thể tải danh sách đơn hàng.");
       setOrders(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Có lỗi xảy ra.");
@@ -124,43 +140,121 @@ export default function QuanLyDonHang() {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       if (currentPage <= 3) {
-        pages.push(1, 2, 3, 4, '...', totalPages);
+        pages.push(1, 2, 3, 4, "...", totalPages);
       } else if (currentPage >= totalPages - 2) {
-        pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        pages.push(
+          1,
+          "...",
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages,
+        );
       } else {
-        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+        pages.push(
+          1,
+          "...",
+          currentPage - 1,
+          currentPage,
+          currentPage + 1,
+          "...",
+          totalPages,
+        );
       }
     }
     return pages;
   };
 
-  const onChangeStatus = async (orderId: number, nextStatus: AdminOrder["Status"]) => {
-    if (!confirm("Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng này?")) return;
-    try {
-      setUpdatingOrderId(orderId);
-      const response = await authorizedFetch(`${API_BASE}/api/admin/orders/${orderId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Status: nextStatus }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.message || "Cập nhật trạng thái thất bại.");
+  const onChangeStatus = (
+    orderId: number,
+    nextStatus: AdminOrder["Status"],
+  ) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Xác nhận cập nhật trạng thái",
+      message: "Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng này?",
+      onConfirm: async () => {
+        try {
+          setUpdatingOrderId(orderId);
+          const response = await authorizedFetch(
+            `${API_BASE}/api/admin/orders/${orderId}/status`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ Status: nextStatus }),
+            },
+          );
+          const data = await response.json();
+          if (!response.ok)
+            throw new Error(data?.message || "Cập nhật trạng thái thất bại.");
 
-      setOrders((prev) =>
-        prev.map((order) => (order.Id_order === orderId ? { ...order, Status: nextStatus } : order))
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
-    } finally {
-      setUpdatingOrderId(null);
-    }
+          setOrders((prev) =>
+            prev.map((order) =>
+              order.Id_order === orderId
+                ? { ...order, Status: nextStatus }
+                : order,
+            ),
+          );
+          toast.success("Cập nhật trạng thái thành công.");
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
+        } finally {
+          setUpdatingOrderId(null);
+        }
+      },
+    });
+  };
+
+  const onChangePaymentStatus = (
+    orderId: number,
+    nextPaymentStatus: number,
+  ) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Xác nhận cập nhật thanh toán",
+      message:
+        "Bạn có chắc chắn muốn cập nhật trạng thái thanh toán đơn hàng này?",
+      onConfirm: async () => {
+        try {
+          setUpdatingOrderId(orderId);
+          const response = await authorizedFetch(
+            `${API_BASE}/api/admin/orders/${orderId}/status`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ Status_payment: nextPaymentStatus }),
+            },
+          );
+          const data = await response.json();
+          if (!response.ok)
+            throw new Error(
+              data?.message || "Cập nhật trạng thái thanh toán thất bại.",
+            );
+
+          setOrders((prev) =>
+            prev.map((order) =>
+              order.Id_order === orderId
+                ? { ...order, Status_payment: nextPaymentStatus }
+                : order,
+            ),
+          );
+          toast.success("Cập nhật trạng thái thanh toán thành công.");
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
+        } finally {
+          setUpdatingOrderId(null);
+        }
+      },
+    });
   };
 
   return (
     <main className="p-6 bg-[#F8FAFC] min-h-screen">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#0F172A]">Quản lý đơn hàng</h1>
-        <p className="text-sm text-[#64748B] mt-1">Theo dõi và cập nhật trạng thái tất cả đơn hàng.</p>
+        <p className="text-sm text-[#64748B] mt-1">
+          Theo dõi và cập nhật trạng thái tất cả đơn hàng.
+        </p>
       </div>
 
       <div className="w-full bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -171,7 +265,9 @@ export default function QuanLyDonHang() {
               loadOrders({ search: search.trim(), status: "" });
             }}
             className={`h-full w-[155px] text-center font-semibold border-b-2 ${
-              statusFilter === "" ? "text-sky-500 border-sky-500" : "text-slate-500 border-transparent"
+              statusFilter === ""
+                ? "text-sky-500 border-sky-500"
+                : "text-slate-500 border-transparent"
             }`}
           >
             Tất cả ({stats.all})
@@ -182,7 +278,9 @@ export default function QuanLyDonHang() {
               loadOrders({ search: search.trim(), status: "pending" });
             }}
             className={`h-full w-[155px] text-center font-semibold border-b-2 ${
-              statusFilter === "pending" ? "text-sky-500 border-sky-500" : "text-slate-500 border-transparent"
+              statusFilter === "pending"
+                ? "text-sky-500 border-sky-500"
+                : "text-slate-500 border-transparent"
             }`}
           >
             Chờ xử lý ({stats.pending})
@@ -193,7 +291,9 @@ export default function QuanLyDonHang() {
               loadOrders({ search: search.trim(), status: "confirmed" });
             }}
             className={`h-full w-[155px] text-center font-semibold border-b-2 ${
-              statusFilter === "confirmed" ? "text-sky-500 border-sky-500" : "text-slate-500 border-transparent"
+              statusFilter === "confirmed"
+                ? "text-sky-500 border-sky-500"
+                : "text-slate-500 border-transparent"
             }`}
           >
             Đã xác nhận ({stats.confirmed})
@@ -204,7 +304,9 @@ export default function QuanLyDonHang() {
               loadOrders({ search: search.trim(), status: "processing" });
             }}
             className={`h-full w-[155px] text-center font-semibold border-b-2 ${
-              statusFilter === "processing" ? "text-sky-500 border-sky-500" : "text-slate-500 border-transparent"
+              statusFilter === "processing"
+                ? "text-sky-500 border-sky-500"
+                : "text-slate-500 border-transparent"
             }`}
           >
             Đang giao ({stats.processing})
@@ -215,7 +317,9 @@ export default function QuanLyDonHang() {
               loadOrders({ search: search.trim(), status: "completed" });
             }}
             className={`h-full w-[155px] text-center font-semibold border-b-2 ${
-              statusFilter === "completed" ? "text-sky-500 border-sky-500" : "text-slate-500 border-transparent"
+              statusFilter === "completed"
+                ? "text-sky-500 border-sky-500"
+                : "text-slate-500 border-transparent"
             }`}
           >
             Đã hoàn thành ({stats.completed})
@@ -226,14 +330,19 @@ export default function QuanLyDonHang() {
               loadOrders({ search: search.trim(), status: "cancelled" });
             }}
             className={`h-full w-[155px] text-center font-semibold border-b-2 ${
-              statusFilter === "cancelled" ? "text-sky-500 border-sky-500" : "text-slate-500 border-transparent"
+              statusFilter === "cancelled"
+                ? "text-sky-500 border-sky-500"
+                : "text-slate-500 border-transparent"
             }`}
           >
             Đã hủy ({stats.cancelled})
           </button>
         </div>
 
-        <form onSubmit={onSearchSubmit} className="flex items-center justify-between p-4 gap-4">
+        <form
+          onSubmit={onSearchSubmit}
+          className="flex items-center justify-between p-4 gap-4"
+        >
           <div className="flex items-center gap-2 w-[340px] px-3 py-2 border border-slate-200 rounded-lg text-slate-500 text-sm">
             <i className="fa-solid fa-magnifying-glass"></i>
             <input
@@ -244,7 +353,10 @@ export default function QuanLyDonHang() {
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
-          <button className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-[#334155]" type="submit">
+          <button
+            className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-[#334155]"
+            type="submit"
+          >
             Tìm kiếm
           </button>
         </form>
@@ -291,30 +403,48 @@ export default function QuanLyDonHang() {
             {!loading &&
               !error &&
               currentOrders.map((order) => (
-                <tr key={order.Id_order} className="border-b border-slate-200 hover:bg-slate-50 transition">
-                  <td className="p-4 text-[#00B4D8] font-bold">#{order.Order_code}</td>
+                <tr
+                  key={order.Id_order}
+                  className="border-b border-slate-200 hover:bg-slate-50 transition"
+                >
+                  <td className="p-4 text-[#00B4D8] font-bold">
+                    #{order.Order_code}
+                  </td>
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-slate-200 rounded-full flex items-center justify-center font-semibold text-slate-700">
-                        {(order.Name_user || order.Receiver_name || "KH").slice(0, 2).toUpperCase()}
+                        {(order.Name_user || order.Receiver_name || "KH")
+                          .slice(0, 2)
+                          .toUpperCase()}
                       </div>
                       <div>
                         <p className="text-[#0F172A] text-[14px] font-semibold">
-                          {order.Name_user || order.Receiver_name || "Khách hàng"}
+                          {order.Name_user ||
+                            order.Receiver_name ||
+                            "Khách hàng"}
                         </p>
-                        <p className="text-xs text-slate-500">{order.Phone || "Không có SĐT"}</p>
+                        <p className="text-xs text-slate-500">
+                          {order.Phone || "Không có SĐT"}
+                        </p>
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-[#475569] text-sm">{formatDateTime(order.Created_order)}</td>
-                  <td className="p-4 text-[#0F172A] font-bold">{formatMoney(order.Final_amount)}</td>
+                  <td className="p-4 text-[#475569] text-sm">
+                    {formatDateTime(order.Created_order)}
+                  </td>
+                  <td className="p-4 text-[#0F172A] font-bold">
+                    {formatMoney(order.Final_amount)}
+                  </td>
                   <td className="p-4">
                     <select
                       disabled={updatingOrderId === order.Id_order}
                       className="w-full border border-slate-200 rounded-md px-3 py-1.5 text-[#0F172A] text-sm focus:ring-1 focus:ring-sky-400 outline-none disabled:opacity-60"
                       value={order.Status}
                       onChange={(event) =>
-                        onChangeStatus(order.Id_order, event.target.value as AdminOrder["Status"])
+                        onChangeStatus(
+                          order.Id_order,
+                          event.target.value as AdminOrder["Status"],
+                        )
                       }
                     >
                       {statusOptions.map((status) => (
@@ -325,14 +455,37 @@ export default function QuanLyDonHang() {
                     </select>
                   </td>
                   <td className="p-4 font-medium">
-                    {Number(order.Status_payment) === 1 ? "Đã thanh toán" : "Chưa thanh toán"}
+                    {order.Status === "completed" &&
+                    Number(order.Status_payment) === 0 &&
+                    order.Payment_method_name?.toUpperCase().includes("COD") ? (
+                      <select
+                        disabled={updatingOrderId === order.Id_order}
+                        className="w-full border border-slate-200 rounded-md px-3 py-1.5 text-[#0F172A] text-sm focus:ring-1 focus:ring-sky-400 outline-none disabled:opacity-60"
+                        value={order.Status_payment}
+                        onChange={(event) =>
+                          onChangePaymentStatus(
+                            order.Id_order,
+                            Number(event.target.value),
+                          )
+                        }
+                      >
+                        <option value={0}>Chưa thanh toán</option>
+                        <option value={1}>Đã thanh toán</option>
+                      </select>
+                    ) : Number(order.Status_payment) === 1 ? (
+                      "Đã thanh toán"
+                    ) : (
+                      "Chưa thanh toán"
+                    )}
                   </td>
-                  <td className="p-4">{order.Payment_method_name || "Không xác định"}</td>
+                  <td className="p-4">
+                    {order.Payment_method_name || "Không xác định"}
+                  </td>
                 </tr>
               ))}
           </tbody>
         </table>
-        
+
         <div className="flex items-center justify-end border-t border-slate-200 px-6 py-4 gap-4">
           <button
             disabled={currentPage === 1}
@@ -343,21 +496,25 @@ export default function QuanLyDonHang() {
           </button>
 
           <div className="flex items-center gap-2">
-            {getVisiblePages().map((page, i) => (
-              page === '...' ? (
-                <span key={`ellipsis-${i}`} className="px-2 text-slate-400">...</span>
+            {getVisiblePages().map((page, i) =>
+              page === "..." ? (
+                <span key={`ellipsis-${i}`} className="px-2 text-slate-400">
+                  ...
+                </span>
               ) : (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page as number)}
                   className={`h-9 w-9 rounded-lg text-sm transition ${
-                    currentPage === page ? "bg-[#0B3C6D] text-white shadow-sm" : "border border-slate-200 hover:bg-slate-50"
+                    currentPage === page
+                      ? "bg-[#0B3C6D] text-white shadow-sm"
+                      : "border border-slate-200 hover:bg-slate-50"
                   }`}
                 >
                   {page}
                 </button>
-              )
-            ))}
+              ),
+            )}
           </div>
 
           <button
@@ -369,8 +526,38 @@ export default function QuanLyDonHang() {
           </button>
         </div>
       </div>
+
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-lg w-[400px] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-[#0F172A] mb-2">
+                {confirmModal.title}
+              </h3>
+              <p className="text-sm text-slate-500">{confirmModal.message}</p>
+            </div>
+            <div className="px-6 py-4 bg-slate-50 flex justify-end gap-3 border-t border-slate-100">
+              <button
+                onClick={() =>
+                  setConfirmModal({ ...confirmModal, isOpen: false })
+                }
+                className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal({ ...confirmModal, isOpen: false });
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-sky-500 rounded-lg hover:bg-sky-600 transition"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
-
-
