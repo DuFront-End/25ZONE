@@ -266,6 +266,11 @@ const handleSubmit = async () => {
     onChange={(e) => {
       const files = Array.from(e.target.files || []);
 
+      if (previewUrls.length + files.length > 3) {
+          toast.error("Chỉ được phép thêm tối đa 3 ảnh.");
+          return;
+      }
+
       // Gộp ảnh mới + ảnh cũ (cho phép add nhiều lần)
       const newImages = [...images, ...files];
       setImages(newImages);

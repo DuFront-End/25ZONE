@@ -10,14 +10,19 @@ export interface ProductAPI {
     Id_product: number;
     Name_product: string;
     Quantity: number;
-    Size: string;
+    Size: string | null;
     Price: number;
     Sale_Price: number | null;
-    Description: string;
+    Description: string | null;
+    Usage_Instructions: string | null;
+    Ingredients: string | null;
     Status: number;
+    Id_category_product: number;
+    Id_brand: number;
     Category_Name: string;
     Brand_Name: string;
-    Thumbnail?: string; // <<< BẮT BUỘC thêm
+    Thumbnail?: string;
+    Images?: string[];
 }
 
 export interface ProductRowData {

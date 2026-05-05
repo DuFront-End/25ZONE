@@ -1,7 +1,7 @@
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_BASE ||
-  "http://localhost:5001";
+  "https://api.25zone.io.vn";
 
 export const ADMIN_TOKEN_COOKIE = "admin_token";
 export const ADMIN_REFRESH_TOKEN_COOKIE = "admin_refresh_token";

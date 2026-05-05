@@ -77,30 +77,45 @@ export default function EditProductModal({
     /* ================= LOAD PRODUCT ================= */
 
     useEffect(() => {
-        if (!product) return;
+        if (!product || !open) return;
 
-        const matchCat = categories.find((c) => c.Name_category === product.Category_Name);
-        const matchBr = brands.find((b) => b.Name_brand === product.Brand_Name);
+        const loadFullProduct = async () => {
+            try {
+                const res = await authorizedFetch(`${API_BASE}/api/sanpham/${product.Id_product}`);
+                if (res.ok) {
+                    const fullProduct = await res.json();
+                    
+                    const matchCat = categories.find((c) => c.Name_category === fullProduct.Category_Name);
+                    const matchBr = brands.find((b) => b.Name_brand === fullProduct.Brand_Name);
 
-        setForm({
-            Name_product: product.Name_product,
-            Quantity: product.Quantity,
-            Price: product.Price,
-            Id_category_product: matchCat ? String(matchCat.Id_category_products) : "",
-            Id_brand: matchBr ? String(matchBr.Id_brand) : "",
-        });
+                    setForm({
+                        Name_product: fullProduct.Name_product,
+                        Quantity: fullProduct.Quantity,
+                        Price: fullProduct.Price,
+                        Id_category_product: matchCat ? String(matchCat.Id_category_products) : "",
+                        Id_brand: matchBr ? String(matchBr.Id_brand) : "",
+                    });
 
-        setImages([]);
+                    setImages([]);
 
-        if (product.Thumbnail) {
-            const imageUrl = product.Thumbnail.startsWith("http")
-                ? product.Thumbnail
-                : `${API_BASE}${product.Thumbnail}`;
-            setPreviewUrls([imageUrl]);
-        } else {
-            setPreviewUrls([]);
-        }
-    }, [product, categories, brands]);
+                    if (fullProduct.Images && fullProduct.Images.length > 0) {
+                        setPreviewUrls(fullProduct.Images.map((img: string) => img.startsWith("http") ? img : `${API_BASE}${img}`));
+                    } else if (fullProduct.Thumbnail) {
+                        const imageUrl = fullProduct.Thumbnail.startsWith("http")
+                            ? fullProduct.Thumbnail
+                            : `${API_BASE}${fullProduct.Thumbnail}`;
+                        setPreviewUrls([imageUrl]);
+                    } else {
+                        setPreviewUrls([]);
+                    }
+                }
+            } catch (error) {
+                console.error("Lỗi fetch full product:", error);
+            }
+        };
+
+        loadFullProduct();
+    }, [product, open, categories, brands, authorizedFetch]);
 
     /* ================= FETCH CATEGORY + BRAND ================= */
 
@@ -140,6 +155,11 @@ export default function EditProductModal({
         const files = Array.from(e.target.files || []);
 
         if (!files.length) return;
+
+        if (previewUrls.length + files.length > 3) {
+            toast.error("Chỉ được phép thêm tối đa 3 ảnh (bao gồm cả ảnh hiện tại).");
+            return;
+        }
 
         const newImages = [...images, ...files];
         setImages(newImages);
@@ -182,6 +202,19 @@ export default function EditProductModal({
             formData.append("Price", String(form.Price));
             formData.append("Id_category_product", form.Id_category_product);
             formData.append("Id_brand", form.Id_brand);
+            // Gi\u1eef nguy\u00ean c\u00e1c field kh\u00e1c t\u1eeb s\u1ea3n ph\u1ea9m g\u1ed1c \u0111\u1ec3 backend kh\u00f4ng nh\u1eadn undefined
+            formData.append("Size", String(product.Size ?? ""));
+            formData.append("Sale_Price", product.Sale_Price != null ? String(product.Sale_Price) : "");
+            formData.append("Description", product.Description ?? "");
+            formData.append("Usage_Instructions", product.Usage_Instructions ?? "");
+            formData.append("Ingredients", product.Ingredients ?? "");
+
+            // Gửi danh sách ảnh cũ được giữ lại
+            const numServerImages = previewUrls.length - images.length;
+            const serverUrls = previewUrls.slice(0, numServerImages);
+            serverUrls.forEach(url => {
+                 formData.append("keptImages", url.replace(API_BASE, "")); 
+            });
 
             images.forEach((img) => {
                 formData.append("images", img);
@@ -201,6 +234,7 @@ export default function EditProductModal({
                 throw new Error("Lỗi gọi server");
             }
 
+            toast.success("Cập nhật sản phẩm thành công!");
             onSuccess();
             onClose();
         } catch (error) {
@@ -293,7 +327,11 @@ export default function EditProductModal({
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        const newImgs = images.filter((_, i) => i !== index);
+                                        const numServerImages = previewUrls.length - images.length;
+                                        let newImgs = [...images];
+                                        if (index >= numServerImages) {
+                                            newImgs.splice(index - numServerImages, 1);
+                                        }
                                         const newPre = previewUrls.filter((_, i) => i !== index);
                                         setImages(newImgs);
                                         setPreviewUrls(newPre);

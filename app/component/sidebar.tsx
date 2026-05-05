@@ -16,13 +16,18 @@ import {
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [adminName] = useState(() => getAdminName() || "Quản trị viên");
-  const [storeId] = useState(() => getAdminStoreId());
-  const isAdminTong = storeId === 0 || storeId === null || isNaN(storeId);
-  const adminRoleDisplay = isAdminTong ? "Admin Tổng" : "Admin Chi Nhánh";
+  const [adminName, setAdminName] = useState("");
+  const [storeId, setStoreId] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const isAdminTong = !mounted || storeId === 0 || storeId === null || isNaN(storeId as number);
+  const adminRoleDisplay = !mounted ? "" : isAdminTong ? "Admin Tổng" : "Admin Chi Nhánh";
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
+    setAdminName(getAdminName() || "Quản trị viên");
+    setStoreId(getAdminStoreId());
+    setMounted(true);
+
     // Fetch pending bookings count
     const fetchPendingCount = async () => {
       try {
