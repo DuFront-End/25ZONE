@@ -276,7 +276,7 @@ export default function DanhGiaPage() {
                 <th className="py-3 font-medium w-[250px]">{view === "services" ? "Đánh giá sao" : "Nội dung bình luận"}</th>
                 <th className="py-3 font-medium">Chi nhánh/Lịch hẹn</th>
                 <th className="py-3 font-medium">Thời gian</th>
-                <th className="py-3 font-medium text-right pr-2">Thao tác</th>
+                {/* <th className="py-3 font-medium text-right pr-2">Thao tác</th> */}
               </tr>
             </thead>
             <tbody>
@@ -330,7 +330,7 @@ export default function DanhGiaPage() {
                     <td className="py-4">
                       <div className="text-[#64748B]">{formatDateTime(item.createdAt)}</div>
                     </td>
-
+{/* 
                     <td className="text-right pr-2">
                        <button
                          title="Xóa phản hồi"
@@ -349,7 +349,7 @@ export default function DanhGiaPage() {
                            <i className="fa-solid fa-trash-can"></i>
                          )}
                        </button>
-                    </td>
+                    </td> */}
                   </tr>
                 ))
               ) : (
